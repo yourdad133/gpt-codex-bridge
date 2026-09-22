@@ -1,26 +1,29 @@
 # Current Stage
 
-Stage 00、Stage 01 已审核通过。
+Stage 00、01、02 已审核通过。
 
 当前只允许执行：
 
-`prompts/02_implement_ema_module.md`
+`prompts/03_integrate_timemixer.md`
 
 执行前必须完整读取：
 
 - `results/00_baseline_audit.md`
 - `results/01_method_spec.md`
-- `prompts/02_implement_ema_module.md`
+- `results/02_implement_ema_module.md`
+- `prompts/03_integrate_timemixer.md`
 
-Stage 02 分为两个串行部分：
+当前实现基线：
 
-1. 按 Stage 01 冻结方案建立安全、可追溯的 baseline worktree / baseline-freeze commit；
-2. 从 baseline-freeze 派生 SAEMA worktree，只实现独立 EMA decomposition 模块及单元测试。
+- baseline-freeze SHA: `462875291aa7eb5963e9ba81dc5ab86c6b8f5230`
+- EMA module SHA: `8f3a6b951360053ec1afd5f747f11beb7195d30d`
 
-**不要接入 TimeMixer PDM，不要改 EMA CLI，不要跑正式训练。**
+Stage 03 只允许在 `codex/saema-v1` worktree 中进行 TimeMixer 集成、CLI、guard、logging、regression/integration tests 和极短数据 smoke。
 
-执行完成后，把结果写入：
+**不得进行正式训练或 alpha 搜索。**
 
-`results/02_implement_ema_module.md`
+执行完成后写：
 
-完成后停止，不要自动执行 Stage 03。
+`results/03_integrate_timemixer.md`
+
+完成后停止，不要自动执行 Stage 04。
