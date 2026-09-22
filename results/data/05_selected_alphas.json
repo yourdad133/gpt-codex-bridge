@@ -1,0 +1,22 @@
+{
+  "selection_metric": "best_validation_loss",
+  "tie_tolerance": 1e-06,
+  "fixed_ema_alpha": 0.02,
+  "scale_aware_ema_alpha": 0.05,
+  "candidate_grid": [
+    0.02,
+    0.05,
+    0.1,
+    0.15,
+    0.2
+  ],
+  "dataset": "ETTh1",
+  "seq_len": 96,
+  "pred_len": 96,
+  "seed": 2021,
+  "fixed_ema_best_validation_loss": 0.6844822,
+  "scale_aware_ema_best_validation_loss": 0.6875293,
+  "fixed_ema_tie": false,
+  "scale_aware_ema_tie": false,
+  "source_artifact": "results/data/05_alpha_validation_selection.csv"
+}
