@@ -6,6 +6,14 @@
 
 本阶段仍然 **不修改 TSLib 源代码**。目标是先把数学定义和接口冻结，避免边写代码边改变研究假设。
 
+Stage 00 已确认：
+- 当前 baseline 结果可信，但 TSLib 工作树不是 commit-clean；
+- 三 seed 可复现性依赖 `run.py` 与 DataLoader 的未提交 seed/RNG 改动；
+- baseline 主实验使用 `channel_independence=1`；
+- 当 `channel_independence=0` 时，`Model.preprocess` 还存在一层独立的 moving-average decomposition。
+
+因此本阶段还必须冻结 **baseline snapshot 策略** 与 **channel_independence v1 边界**，以便 Stage 02 安全实现。
+
 ## 研究问题
 
 TimeMixer 在不同 down-sampling scale 上做 decomposition，但原始 moving-average decomposition 的机制在尺度间并未显式根据采样间隔调整。
@@ -53,7 +61,8 @@ EMA 定义：
 - 为什么 `alpha_k` 会随 scale 增大；
 - 为什么不是简单手工设置 `alpha_0, alpha_1, ...`；
 - `alpha_base` 很小时与很大时的行为；
-- 当 `w=2`、`down_sampling_layers=3` 时，给出 alpha_base = 0.05 / 0.10 / 0.20 的各尺度数值表。
+- 当 `w=2`、`down_sampling_layers=3` 时，给出 alpha_base = 0.05 / 0.10 / 0.20 的各尺度数值表；
+- 明确说明该换算保持的是“连续时间意义下相同的 EMA time constant / decay horizon”，而不是人为规定“粗尺度必须更追随当前点”。
 
 ### B. 冻结第一版方法边界
 
@@ -64,10 +73,17 @@ EMA 定义：
 - alpha 不依赖 channel；
 - alpha 不随时间 t 变化；
 - 所有 channel 在同一 scale 共用同一个 alpha_k；
-- 只替换 decomposition，不改变 PDM 的 seasonal bottom-up mixing 与 trend top-down mixing；
+- 只替换 PDM decomposition，不改变 PDM 的 seasonal bottom-up mixing 与 trend top-down mixing；
 - 不改变 FMM；
 - 不改变 loss；
-- 不改变数据划分。
+- 不改变数据划分；
+- **正式 v1 主实验固定 `channel_independence=1`，与已复现 baseline 保持一致。**
+
+对于 `channel_independence=0`：
+- 本阶段必须明确工程行为；
+- v1 不得悄悄把 `Model.preprocess` 的额外 moving-average split 也替换成 EMA；
+- 优先方案是保留原 preprocess 行为并清楚记录，或在 EMA 模式下显式声明该组合暂不属于 v1 实验边界；
+- 不允许在没有实验设计的情况下同时改变两处分解。
 
 ### C. 设计两种 EMA 作为消融
 
@@ -95,7 +111,8 @@ EMA 定义：
 - `decomp_method` 如何扩展；
 - 默认值如何保证原 baseline 完全不变；
 - EMA alpha 如何记录到实验日志；
-- checkpoint 是否需要新增参数（第一版应尽量无可训练参数）。
+- checkpoint 是否需要新增参数（第一版应尽量无可训练参数）；
+- 如何确保原 `moving_avg` 与 `dft_decomp` 分支代码路径不被重构式修改。
 
 不要写伪造的文件位置，必须基于 Stage 00 的真实审计。
 
@@ -110,16 +127,35 @@ EMA 定义：
 - 空序列 / 长度 1；
 - NaN/Inf 检查建议。
 
+### F. 冻结 Stage 02 前的 baseline snapshot 策略
+
+Stage 00 已发现当前 TSLib 工作树有大量未提交内容。**本阶段不得执行 git clean/reset/stash/commit 等写操作**，但必须在报告中给出 Stage 02 应遵循的安全方案。
+
+方案必须满足：
+
+1. 不丢失当前任何未提交工作；
+2. 保留已复现实验真正依赖的 seed / DataLoader RNG 改动；
+3. Scale-Aware EMA 的实现有明确、可追溯的起点；
+4. unrelated AdaptivePatch / M4 等改动不能被误认为 SAEMA 的贡献；
+5. 后续 baseline 与 EMA 使用同一实验基础代码；
+6. 能明确列出“baseline snapshot 中包含哪些非 upstream 改动”。
+
+请给出推荐的 branch / commit 组织方式，并说明为什么这样最安全。不要在 Stage 01 实际执行。
+
 ## 输出
 
 写入：
 
 `results/01_method_spec.md`
 
-最后必须给出一段：
+最后必须给出两段：
 
 ### Frozen v1 specification
 
 把后续实现必须遵守的数学公式、配置项、默认行为浓缩成一份不可含糊的规格。
+
+### Stage 02 baseline-freeze procedure
+
+给出 Codex 在真正改源码前必须执行的、安全且可回滚的 git 步骤。该步骤不得丢失当前 dirty-tree 内容。
 
 完成后 push 到 bridge 仓库并停止。不要执行 Stage 02。
